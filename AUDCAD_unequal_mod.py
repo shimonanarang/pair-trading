@@ -8,20 +8,33 @@ import matplotlib.pyplot as plt
 import statsmodels.tsa.vector_ar.vecm as vm
 from model import LSTM_train, prediction    
 from seq_norm import seq_and_norm
-from evaluation import position_returns
+from evaluation import position_returns, eval_metrics
 
 #change matplotlib.pyplot theme
 plt.style.use('ggplot')
 
+def generate_plot(trace, trace_label, title, ylabel, xlabel):
+    plt.figure()
+    for idx in range(len(trace)):
+        plt.plot(trace[idx], label = trace_label[idx])
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xticks(rotation = 90)
+    plt.legend()
+    plt.show()
+
 #If you trade currencies both must end in the same currency, here USD
-df1=pd.read_csv('CADUSD=X_CADUSD.csv')
-df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True).dt.date 
+df1=pd.read_csv('CADUSD=X_CADUSD1.csv')
+df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True)
+df1 = df1[df1['Date']>'2009-06-01']
 df1.rename(columns={'Close': 'CAD'}, inplace=True)
 df1.drop(['Open','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
 
-df2=pd.read_csv('AUDUSD=X_AUDUSD.csv')
-df2['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True).dt.date 
+df2=pd.read_csv('AUDUSD=X_AUDUSD1.csv')
+df2['Date']=pd.to_datetime(df2['Date'],  infer_datetime_format=True)
+df2 = df2[df2['Date'] > '2009-06-01']
 df2.rename(columns={'Close': 'AUD'}, inplace=True)
 df2.drop(['Open','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
@@ -31,13 +44,15 @@ df=pd.merge(df1, df2, how='inner', on='Date')
 df.set_index('Date', inplace=True)
 df.dropna(inplace=True)
 
-df1=pd.read_csv('CADUSD=X_CADUSD.csv')
-df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True).dt.date 
+df1=pd.read_csv('CADUSD=X_CADUSD1.csv')
+df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True)
+df1 = df1[df1['Date']>'2009-06-01']
 df1.rename(columns={'Open': 'CAD'}, inplace=True)
 df1.drop(['Close','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
-df2=pd.read_csv('AUDUSD=X_AUDUSD.csv')
-df2['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True).dt.date 
+df2=pd.read_csv('AUDUSD=X_AUDUSD1.csv')
+df2['Date']=pd.to_datetime(df2['Date'],  infer_datetime_format=True)
+df2 = df2[df2['Date']>'2009-06-01']
 df2.rename(columns={'Open': 'AUD'}, inplace=True)
 df2.drop(['Close','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
@@ -46,9 +61,17 @@ df_opens=pd.merge(df1, df2, how='inner', on='Date')
 
 df_opens.set_index('Date', inplace=True)
 df_opens.dropna(inplace=True)
+print(df_opens.shape)
+print(df.shape)
 
-trainlen=250 #cointegration metric is calculated for train length 250
-lookback=20 #for each batch of size 20
+
+generate_plot([df.loc[:,"AUD"], df.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Closing Price)", "Price", "Time Period")
+generate_plot([df_opens.loc[:,"AUD"], df_opens.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Opening Price)", "Price", "Time Period")
+
+trainlen=300 #cointegration metric is calculated for train length 250
+lookback=60
+print("Lookback",lookback) 
+print(df.head(5))
 
 hedgeRatio=np.full(df.shape, np.NaN)
 numUnits=np.full(df.shape[0], np.NaN)
@@ -65,8 +88,6 @@ for t in range(trainlen+1, df.shape[0]):
     #hedgeRatio[t,:]=result.evec[:,0]/result.evec[:, 0][0] #almost the same
     #Dot multiply (=multiply the 2 hedge ratios by the respective 2 closes and add up) to obtain the net market value of the portfolio (single column)
     yport=pd.DataFrame(np.dot(df.values[(t-lookback):t], result.evec[:, 0]), columns = ['signal'])
-         
-
     
     ma=yport.mean()
     mstd=yport.std()
@@ -87,11 +108,12 @@ data_to_model.reset_index(inplace = True)
 data_to_model = data_to_model[['signal', 'CAD', 'AUD']]
 
 #split the data into train and test (train-split 75%)
-train_size = int(len(data_to_model)*0.75)
+train_size = int(len(data_to_model)*0.80)
 train = data_to_model.iloc[:train_size, :]
 test = data_to_model.iloc[train_size:,:]
 
-batch_size = 20
+batch_size = 5
+print("Batch Size",batch_size)
 #converting the data into sequences of batch_size 
 #Each sequence/window is normalised
 train_x, train_y, norm_y_train = seq_and_norm(train, batch_size)
@@ -107,6 +129,13 @@ plt.show()
 train_pred = prediction(train_x, model, norm_y_train)
 test_pred = prediction(test_x,model, norm_y_test)
 
+test_rmspe = eval_metrics(norm_y_test[:,0], test_pred)
+train_rmspe = eval_metrics(norm_y_train[:,0], train_pred)
+
+print("Test Set RMSPE: {rmspe}%".format(rmspe=test_rmspe))
+print("Train Set RMSPE: {rmspe}%".format(rmspe=train_rmspe))
+
+
 #postions, returns and evaluations
 
 #Train Set
@@ -117,32 +146,10 @@ positions_train,pnl_train, returns_train = position_returns(train_pred, hedgeRat
 print("+++++++++Results on Actual Train Set+++++++++")
 positions_train_ac,pnl_train_ac, returns_train_ac = position_returns(np.array(train.loc[batch_size:,'signal']), hedgeRatio,df,df_opens,start,end)
 
-plt.figure()
-plt.plot(positions_train,label = "Predicted")
-plt.plot(positions_train_ac, label = "Actual")
-plt.title("Positions on Train Set")
-plt.ylabel("Position")
-plt.xlabel("Time Period")
-plt.legend()
-plt.show()
+generate_plot([positions_train, positions_train_ac], ["Predicted", "Actual"],"Positions on Train Set", "Positions", "Time Period")
+generate_plot([pnl_train, pnl_train_ac], ["Predicted", "Actual"],"Profit/Loss on Train Set", "Proft/Loss", "Time Period")
+generate_plot([returns_train, returns_train_ac], ['Predicted', "Actual"], "Return on Train Set", "Cumulative Returns", "Time Period")
 
-plt.figure()
-plt.plot(pnl_train,label = "Predicted")
-plt.plot(pnl_train_ac, label = "Actual")
-plt.title("Profit/Loss on Train Set")
-plt.ylabel("Profit/Loss")
-plt.xlabel("Time Period")
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(returns_train,label = "Predicted")
-plt.plot(returns_train_ac, label = "Actual")
-plt.title("Return on Train Set")
-plt.ylabel("Cumulative Returns")
-plt.xlabel("Time Period")
-plt.legend()
-plt.show()
 #test set
 start =  df.shape[0]-test_pred.shape[0] #270
 end = df.shape[0]
@@ -151,32 +158,10 @@ positions_test,pnl_test, returns_test = position_returns(test_pred, hedgeRatio,d
 print("+++++++++Results on Actual Test Set+++++++++")
 positions_test_ac,pnl_test_ac, returns_test_ac = position_returns(np.array(test.loc[train_size+batch_size:,'signal']), hedgeRatio,df,df_opens,start,end)
 
-plt.figure()
-plt.plot(positions_test,label = "Predicted")
-plt.plot(positions_test_ac, label = "Actual")
-plt.title("Predction on test Set")
-plt.ylabel("Positions")
-plt.xlabel("Time Period")
-plt.legend()
-plt.show()
+generate_plot([positions_test, positions_test_ac], ["Predicted", "Actual"], "Prediction on Test Set","Positions", "Time Period")
+generate_plot([pnl_test, pnl_test_ac], ["Predicted", "Actual"], "Proft/Loss on Test Set", "Proft/Loss", "Time Period")
+generate_plot([returns_test, returns_test_ac], ["Predicted", "Actual"], "Cumulatice Returns on Test Set", "Cumulative Returns", "Time Period")
 
-plt.figure()
-plt.plot(pnl_test,label = "Predicted")
-plt.plot(np.array(pnl_train_ac), label = "Actual")
-plt.title("Profit/Loss on test Set")
-plt.ylabel("Profit/Loss")
-plt.xlabel("Time Period")
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(returns_test,label = "Predicted")
-plt.plot(returns_test_ac, label = "Actual")
-plt.title("Returns on test Set")
-plt.xlabel("Time Period")
-plt.ylabel("Cumulative Returns")
-plt.legend()
-plt.show()
 
 
 '''

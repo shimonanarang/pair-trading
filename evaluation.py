@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score
+
 def position_returns(yport_pred, hedgeRatio,df,df_opens, start,end):
     df = df.iloc[start:end]
     df_opens = df_opens.iloc[start:end]
@@ -19,3 +21,7 @@ def position_returns(yport_pred, hedgeRatio,df,df_opens, start,end):
     print('APR=%f Sharpe=%f' % (np.prod(1+ret)**(252/len(ret))-1, np.sqrt(252)*np.mean(ret)/np.std(ret)))
     return positions,pnl, returns
 
+def eval_metrics(actual, predicted):
+    rmspe = np.sqrt(np.mean(np.square(((actual - predicted) / actual))))*100
+    
+    return rmspe
