@@ -9,50 +9,51 @@ import statsmodels.tsa.vector_ar.vecm as vm
 from model import LSTM_train, prediction    
 from seq_norm import seq_and_norm
 from evaluation import position_returns, eval_metrics
+from check_mean_reversion import *
 
 #change matplotlib.pyplot theme
 plt.style.use('ggplot')
 
-def generate_plot(trace, trace_label, title, ylabel, xlabel):
+def generate_plot(xaxis, trace, trace_label, title, ylabel, xlabel):
     plt.figure()
     for idx in range(len(trace)):
         plt.plot(trace[idx], label = trace_label[idx])
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.xticks(rotation = 90)
+    plt.xticks(rotation = 45)
     plt.legend()
     plt.show()
 
 #If you trade currencies both must end in the same currency, here USD
 df1=pd.read_csv('CADUSD=X_CADUSD1.csv')
 df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True)
-df1 = df1[df1['Date']>'2009-06-01']
+df1 = df1[(df1['Date']>'2009-08-20')&(df1['Date']<'2014-11-10')]
 df1.rename(columns={'Close': 'CAD'}, inplace=True)
 df1.drop(['Open','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
 
 df2=pd.read_csv('AUDUSD=X_AUDUSD1.csv')
 df2['Date']=pd.to_datetime(df2['Date'],  infer_datetime_format=True)
-df2 = df2[df2['Date'] > '2009-06-01']
+df2 = df2[(df2['Date']>'2009-08-20')&(df2['Date']<'2014-11-10')]
 df2.rename(columns={'Close': 'AUD'}, inplace=True)
 df2.drop(['Open','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
 
 df=pd.merge(df1, df2, how='inner', on='Date')
-
 df.set_index('Date', inplace=True)
 df.dropna(inplace=True)
 
+
 df1=pd.read_csv('CADUSD=X_CADUSD1.csv')
 df1['Date']=pd.to_datetime(df1['Date'],  infer_datetime_format=True)
-df1 = df1[df1['Date']>'2009-06-01']
+df1 = df1[(df1['Date']>'2009-08-20')&(df1['Date']<'2014-11-10')]
 df1.rename(columns={'Open': 'CAD'}, inplace=True)
 df1.drop(['Close','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
 df2=pd.read_csv('AUDUSD=X_AUDUSD1.csv')
 df2['Date']=pd.to_datetime(df2['Date'],  infer_datetime_format=True)
-df2 = df2[df2['Date']>'2009-06-01']
+df2 = df2[(df2['Date']>'2009-08-20')&(df2['Date']<'2014-11-10')]
 df2.rename(columns={'Open': 'AUD'}, inplace=True)
 df2.drop(['Close','High','Low','Adj Close','Volume'], axis=1, inplace=True)
 
@@ -64,14 +65,19 @@ df_opens.dropna(inplace=True)
 print(df_opens.shape)
 print(df.shape)
 
+#check mean reversion
+plot_scatter(df)
+adf_test1(df)
 
-generate_plot([df.loc[:,"AUD"], df.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Closing Price)", "Price", "Time Period")
-generate_plot([df_opens.loc[:,"AUD"], df_opens.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Opening Price)", "Price", "Time Period")
+generate_plot(df_opens.index, [df.loc[:,"AUD"], df.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Closing Price)", "Price", "Time Period")
+generate_plot(df_opens.index,[df_opens.loc[:,"AUD"], df_opens.loc[:,"CAD"]], ["AUD-USD", "CAD-USD"], "Conversion Rate (Opening Price)", "Price", "Time Period")
 
 trainlen=300 #cointegration metric is calculated for train length 250
 lookback=60
 print("Lookback",lookback) 
 print(df.head(5))
+
+
 
 hedgeRatio=np.full(df.shape, np.NaN)
 numUnits=np.full(df.shape[0], np.NaN)
@@ -104,13 +110,16 @@ for t in range(trainlen+1, df.shape[0]):
 
 #merge targets with closing price
 data_to_model = pd.merge(target, df, left_on = target.index, right_on = df.index, how = "inner")
+index = data_to_model.index
 data_to_model.reset_index(inplace = True)
 data_to_model = data_to_model[['signal', 'CAD', 'AUD']]
 
 #split the data into train and test (train-split 75%)
 train_size = int(len(data_to_model)*0.80)
 train = data_to_model.iloc[:train_size, :]
+index_train = index[:train_size]
 test = data_to_model.iloc[train_size:,:]
+index_test = index[train_size:]
 
 batch_size = 5
 print("Batch Size",batch_size)
@@ -135,6 +144,10 @@ train_rmspe = eval_metrics(norm_y_train[:,0], train_pred)
 print("Test Set RMSPE: {rmspe}%".format(rmspe=test_rmspe))
 print("Train Set RMSPE: {rmspe}%".format(rmspe=train_rmspe))
 
+#plot trading signal prediction and actual
+generate_plot(index_train,[train_pred, norm_y_train[:,0]], ["Predicted Train", "Actual Train"],"Trading Signal RMSPE {}%".format(train_rmspe), "Trading Signal", "Time Period")
+generate_plot(index_train,[test_pred, norm_y_test[:,0]], ["Predicted Test","Actual Train"],"Trading Signal RMSPE {}%".format(test_rmspe), "Trading Signal", "Time Period")
+
 
 #postions, returns and evaluations
 
@@ -146,9 +159,11 @@ positions_train,pnl_train, returns_train = position_returns(train_pred, hedgeRat
 print("+++++++++Results on Actual Train Set+++++++++")
 positions_train_ac,pnl_train_ac, returns_train_ac = position_returns(np.array(train.loc[batch_size:,'signal']), hedgeRatio,df,df_opens,start,end)
 
-generate_plot([positions_train, positions_train_ac], ["Predicted", "Actual"],"Positions on Train Set", "Positions", "Time Period")
-generate_plot([pnl_train, pnl_train_ac], ["Predicted", "Actual"],"Profit/Loss on Train Set", "Proft/Loss", "Time Period")
-generate_plot([returns_train, returns_train_ac], ['Predicted', "Actual"], "Return on Train Set", "Cumulative Returns", "Time Period")
+
+
+generate_plot(index_train,[positions_train, positions_train_ac], ["Predicted", "Actual"],"Positions on Train Set", "Positions", "Time Period")
+generate_plot(index_train,[pnl_train, pnl_train_ac], ["Predicted", "Actual"],"Profit/Loss on Train Set", "Proft/Loss", "Time Period")
+generate_plot(index_train,[returns_train, returns_train_ac], ['Predicted', "Actual"], "Return on Train Set", "Cumulative Returns", "Time Period")
 
 #test set
 start =  df.shape[0]-test_pred.shape[0] #270
@@ -158,50 +173,6 @@ positions_test,pnl_test, returns_test = position_returns(test_pred, hedgeRatio,d
 print("+++++++++Results on Actual Test Set+++++++++")
 positions_test_ac,pnl_test_ac, returns_test_ac = position_returns(np.array(test.loc[train_size+batch_size:,'signal']), hedgeRatio,df,df_opens,start,end)
 
-generate_plot([positions_test, positions_test_ac], ["Predicted", "Actual"], "Prediction on Test Set","Positions", "Time Period")
-generate_plot([pnl_test, pnl_test_ac], ["Predicted", "Actual"], "Proft/Loss on Test Set", "Proft/Loss", "Time Period")
-generate_plot([returns_test, returns_test_ac], ["Predicted", "Actual"], "Cumulatice Returns on Test Set", "Cumulative Returns", "Time Period")
-
-
-
-'''
-numUnits in line 60 is the main trading signal of this program and 
-this line uses the latest, most up-to-date (net) market value of the portfolio (=yport.iloc[-1,:])
-Use an LSTM to predict tomorrows (net) market value of the portfolio:
-numUnits[t]=-(LSTMPREDICTIONOFYPORT-ma)/mstd
-as input data for the LSTM, use the past values of yport, CADUSD and AUDUSD Open High Low Close Volume data perhaps other inputs,
-normalized with window normalization.
-
-"""
-'''
-'''
-
-#multiply the number of units (one column) by the hedge ratio (two columns) and by the closes (two columns) 
-#to obtain the positions (two columns).
-#The positions are market values of AUDUSD and CADUSD in portfolio expressed in US$.
-positions=pd.DataFrame(np.expand_dims(numUnits, axis=1)*hedgeRatio)*df.values # results.evec(:, 0)' can be viewed as the capital allocation, while positions is the dollar capital in each ETF.
-#multiply the 2 positions (both shifted 1 back) by the respective 2 price percent change and add up 
-#to obtain the daily profit and loss (single column)
-pnl=np.sum((positions.shift().values)*(df_opens.pct_change().values), axis=1)# daily P&L of the strategy, entering at the open
-#calculate the returns and cummulative returns
-ret=pnl/np.sum(np.abs(positions.shift()), axis=1)
-ret.fillna(value=0, inplace=True)
-(np.cumprod(1+ret)-1).plot()
-print('APR=%f Sharpe=%f' % (np.prod(1+ret)**(252/len(ret))-1, np.sqrt(252)*np.mean(ret)/np.std(ret)))
-# APR=0.064512 Sharpe=1.362926
-
-"""
-Ignore this comment
-with integer numUnits the results are not as good
-numUnitsdf = pd.DataFrame(numUnits.tolist(), columns=['nU1'])
-numUnitsdf.fillna(value=0, inplace=True)
-numUnitsdf['nU2'] = numUnitsdf.nU1
-numUnitsdf.loc[np.abs(numUnitsdf.nU1) >= 0, "nU2"] = np.NaN # make all NANs
-numUnitsdf.loc[numUnitsdf.nU1 > 1, "nU2"] = 1
-numUnitsdf.loc[numUnitsdf.nU1 < -1, "nU2"] = -1
-numUnitsdf['ss'] = np.sign(numUnitsdf.nU1) + np.sign(numUnitsdf.nU1.shift(1))
-numUnitsdf.loc[ numUnitsdf['ss'] == 0, "nU2"] = 0 #when the sign changes (across zero), get out of the position
-numUnitsdf.fillna(method='ffill', inplace=True)
-numUnits = numUnitsdf.nU2.to_numpy().reshape(-1)
-"""
-'''
+generate_plot(index_test,[positions_test, positions_test_ac], ["Predicted", "Actual"], "Positions on Test Set","Positions", "Time Period")
+generate_plot(index_test,[pnl_test, pnl_test_ac], ["Predicted", "Actual"], "Proft/Loss on Test Set", "Proft/Loss", "Time Period")
+generate_plot(index_test,[returns_test, returns_test_ac], ["Predicted", "Actual"], "Cumulative Returns on Test Set", "Cumulative Returns", "Time Period")

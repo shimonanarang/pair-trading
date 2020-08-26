@@ -8,7 +8,7 @@ def plot_scatter(df):
     plt.scatter(df.iloc[:,0], df.iloc[:,1], s=0.8)
     plt.xlabel(df.columns[0])
     plt.ylabel(df.columns[1])
-    plt.title("Correlation b/w 2 time series {}".format(round(df.iloc[:,0].corr(df.iloc[:,1]),2)))
+    plt.title("Correlation b/w 2 time series {}".format(df.iloc[:,0].corr(df.iloc[:,1])))
     plt.show()
 
 #check mean reversion from the residual values
@@ -31,13 +31,13 @@ def adf_test1(df):
     plt.plot(df.index, res)
     plt.xticks(rotation = 45)
     plt.xlabel("Month/Year")
-    plt.ylabel("Residual")
+    plt.ylabel("Residue (c(t))")
     plt.show()
     #calculate adf test calue
     cADF = ts.adfuller(res)
     print("ADF Test Results \n",cADF)
 
     #if the series is mean-reverting in long term, the test result
-    #should be lesser then 5% critical value
+    #should be lesser then 10% critical value
     #which means we can reject null hypothesis where H0 denotes that 
     #two time seriers are not mean reverting

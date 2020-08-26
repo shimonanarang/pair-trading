@@ -22,11 +22,11 @@ def LSTM_train(x,y, batch_size):
     n_features = x.shape[2]
     model = Sequential()
     model.add(LSTM(128, activation='tanh', input_shape=(n_timesteps, n_features), return_sequences = True, dropout=0.5, recurrent_dropout=0.0))
-    model.add(LSTM(128, activation='tanh', return_sequences = True, dropout = 0.5))
-    model.add(LSTM(128, activation='tanh', return_sequences = True, dropout = 0.5))    
+    model.add(LSTM(128, activation='tanh', return_sequences = True, dropout = 0.8))
+    model.add(LSTM(128, activation='tanh', return_sequences = True, dropout = 0.8))    
     model.add(Flatten())
     model.add(Dense(100, activation='tanh'))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.8))
     model.add(Dense(1))
     model.compile(loss='mse', optimizer='adam')
 
