@@ -30,13 +30,13 @@ def generate_plot(xaxis, trace, trace_label, title, ylabel, xlabel):
 # If you trade currencies both must end in the same currency, here USD
 df1 = pd.read_csv('CADUSD=X.csv')
 df1['Date'] = pd.to_datetime(df1['Date'], infer_datetime_format=True)
-df1 = df1[(df1['Date'] > '2009-08-20') & (df1['Date'] < '2014-11-10')]
+# df1 = df1[(df1['Date']>'2009-08-20')&(df1['Date']<'2014-11-10')]
 df1.rename(columns={'Close': 'CAD'}, inplace=True)
 df1.drop(['Open', 'High', 'Low', 'Adj Close', 'Volume'], axis=1, inplace=True)
 
 df2 = pd.read_csv('AUDUSD=X.csv')
 df2['Date'] = pd.to_datetime(df2['Date'], infer_datetime_format=True)
-df2 = df2[(df2['Date'] > '2009-08-20') & (df2['Date'] < '2014-11-10')]
+# df2 = df2[(df2['Date']>'2009-08-20')&(df2['Date']<'2014-11-10')]
 df2.rename(columns={'Close': 'AUD'}, inplace=True)
 df2.drop(['Open', 'High', 'Low', 'Adj Close', 'Volume'], axis=1, inplace=True)
 
@@ -46,13 +46,13 @@ df.dropna(inplace=True)
 
 df1 = pd.read_csv('CADUSD=X.csv')
 df1['Date'] = pd.to_datetime(df1['Date'], infer_datetime_format=True)
-df1 = df1[(df1['Date'] > '2009-08-20') & (df1['Date'] < '2014-11-10')]
+# df1 = df1[(df1['Date']>'2009-08-20')&(df1['Date']<'2014-11-10')]
 df1.rename(columns={'Open': 'CAD'}, inplace=True)
 df1.drop(['Close', 'High', 'Low', 'Adj Close', 'Volume'], axis=1, inplace=True)
 
 df2 = pd.read_csv('AUDUSD=X.csv')
 df2['Date'] = pd.to_datetime(df2['Date'], infer_datetime_format=True)
-df2 = df2[(df2['Date'] > '2009-08-20') & (df2['Date'] < '2014-11-10')]
+# df2 = df2[(df2['Date']>'2009-08-20')&(df2['Date']<'2014-11-10')]
 df2.rename(columns={'Open': 'AUD'}, inplace=True)
 df2.drop(['Close', 'High', 'Low', 'Adj Close', 'Volume'], axis=1, inplace=True)
 
