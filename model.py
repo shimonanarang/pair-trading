@@ -25,8 +25,12 @@ def LSTM_train(x, y, batch_size):
     model.add(LSTM(128, activation='tanh', return_sequences=True, dropout=0.8))
     model.add(LSTM(128, activation='tanh', return_sequences=True, dropout=0.8))
     model.add(LSTM(128, activation='tanh', return_sequences=True, dropout=0.8))
+    model.add(LSTM(128, activation='tanh', return_sequences=True, dropout=0.8))
+    model.add(LSTM(128, activation='tanh', return_sequences=True, dropout=0.8))
     model.add(Flatten())
     model.add(Dense(100, activation='tanh'))
+    model.add(Dropout(0.8))
+    model.add(Dense(32, activation='tanh'))
     model.add(Dropout(0.8))
     model.add(Dense(1))
     opt = Adam(learning_rate=1e-4)
@@ -55,8 +59,8 @@ def LSTM_train(x, y, batch_size):
     ]
     # y = np.expand_dims(y, 1)
     # history = model.fit(x,y,epochs = 30, verbose = 1, validation_split = 0.2, shuffle = False)
-    history = model.fit(x, y, epochs=150, batch_size=16, verbose=1, validation_split=0.2, callbacks=callbacks_list,
-                        shuffle=False)
+    history = model.fit(x, y, epochs=150, batch_size=batch_size, verbose=1, validation_split=0.2,
+                        callbacks=callbacks_list, shuffle=False)
     train_loss_values = history.history["loss"]
     val_loss = history.history["val_loss"]
     return train_loss_values, val_loss, model

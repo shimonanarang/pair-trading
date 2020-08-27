@@ -120,7 +120,7 @@ index_train = index[:train_size]
 test = data_to_model.iloc[train_size:, :]
 index_test = index[train_size:]
 
-batch_size = 5
+batch_size = 16
 print("Batch Size", batch_size)
 # converting the data into sequences of batch_size
 # Each sequence/window is normalised
