@@ -72,8 +72,8 @@ generate_plot(df_opens.index, [df.loc[:, "AUD"], df.loc[:, "CAD"]], ["AUD-USD", 
 generate_plot(df_opens.index, [df_opens.loc[:, "AUD"], df_opens.loc[:, "CAD"]], ["AUD-USD", "CAD-USD"],
               "Conversion Rate (Opening Price)", "Price", "Time Period")
 
-trainlen = 300  # cointegration metric is calculated for train length 250
-lookback = 60
+trainlen = 30  # cointegration metric is calculated for train length 250
+lookback = 30
 print("Lookback", lookback)
 print(df.head(5))
 
@@ -146,7 +146,7 @@ print("Train Set RMSPE: {rmspe}%".format(rmspe=train_rmspe))
 # plot trading signal prediction and actual
 generate_plot(index_train, [train_pred, norm_y_train[:, 0]], ["Predicted Train", "Actual Train"],
               "Trading Signal RMSPE {}%".format(train_rmspe), "Trading Signal", "Time Period")
-generate_plot(index_train, [test_pred, norm_y_test[:, 0]], ["Predicted Test", "Actual Train"],
+generate_plot(index_train, [test_pred, norm_y_test[:, 0]], ["Predicted Test", "Actual Test"],
               "Trading Signal RMSPE {}%".format(test_rmspe), "Trading Signal", "Time Period")
 
 # postions, returns and evaluations
