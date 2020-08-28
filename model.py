@@ -33,7 +33,7 @@ def LSTM_train(x, y, batch_size):
     model.add(Dense(32, activation='tanh'))
     model.add(Dropout(0.8))
     model.add(Dense(1))
-    opt = Adam(learning_rate=1e-4)
+    opt = Adam(learning_rate=1e-5)
     model.compile(loss='mae', optimizer=opt)
     print("---------------------------- 6")
     callbacks_list = [
@@ -85,6 +85,7 @@ def prediction(x, model, norm_y):
             patience=10, 
             verbose = 1
         )'''
+
 
 
 
