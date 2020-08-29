@@ -23,9 +23,9 @@
 
 Positions of securities are calculated by using the hedge ratios (hedge ratios determine capital allocation). Positions of two securities on training and test set:
 
-! [image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_train.png)
+![image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_train.png)
 
-! [image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_test.png)
+![image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_test.png)
 
 When two cointegrating securities diverge due to market conditions, they tend to converge in few time periods
 
