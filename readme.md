@@ -23,30 +23,25 @@
 
 Positions of securities are calculated by using the hedge ratios (hedge ratios determine capital allocation). Positions of two securities on training and test set:
 
-! [image]('https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_train.png')
+! [image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_train.png)
 
-! [image]('https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_test.png')
+! [image](https://github.com/shimonanarang/pair-trading/blob/master/fig/positions_test.png)
 
 When two cointegrating securities diverge due to market conditions, they tend to converge in few time periods
 
 # Usage
 1. Clone the repo
 
-'''
-git clone https://github.com/shimonanarang/pair-trading.git
-'''
+`git clone https://github.com/shimonanarang/pair-trading.git`
 
 2. Install the requirements
 
-'''
-pip install -r requirements.txt
-'''
+`pip install -r requirements.txt`
+
 
 3. Navigate and run the following command
 
-'''
-python AUDCAD_uneual_mod.py
-'''
+`python AUDCAD_uneual_mod.py`
 
 
 # References
