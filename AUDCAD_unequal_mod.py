@@ -72,8 +72,8 @@ generate_plot(df_opens.index, [df.loc[:, "AUD"], df.loc[:, "CAD"]], ["AUD-USD", 
 generate_plot(df_opens.index, [df_opens.loc[:, "AUD"], df_opens.loc[:, "CAD"]], ["AUD-USD", "CAD-USD"],
               "Conversion Rate (Opening Price)", "Price", "Time Period")
 
-trainlen = 30  # cointegration metric is calculated for train length 250
-lookback = 30
+trainlen = 250  # cointegration metric is calculated for train length 250
+lookback = 60
 print("Lookback", lookback)
 print(df.head(5))
 
